@@ -1,5 +1,5 @@
 <h1 align = "center">
-  Example Module
+  Example Addon
 </h1>
 
 

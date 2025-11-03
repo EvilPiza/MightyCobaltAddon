@@ -9,18 +9,19 @@ plugins {
 
 val baseGroup: String by project
 val lwjglVersion: String by project
-val modVersion: String by project
-val modName: String by project
+val addonVersion: String by project
+val addonName: String by project
 
 base {
-  archivesName = modName
-  version = modVersion
+  archivesName = addonName
+  version = addonVersion
   group = baseGroup
 }
 
 repositories {
   mavenCentral()
   maven("https://jitpack.io")
+  maven("https://maven.meteordev.org/releases")
   maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
   maven("https://api.modrinth.com/maven")
 }
@@ -34,6 +35,7 @@ dependencies {
   modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
   modImplementation(files("lib/Cobalt-1.0.0.jar"))
 
+  modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.1")
   implementation("meteordevelopment:discord-ipc:1.1")
   modImplementation("org.lwjgl:lwjgl-nanovg:${lwjglVersion}")
 
