@@ -7,34 +7,29 @@ import org.lwjgl.glfw.GLFW
 
 object ExampleModule : Module(
   name = "Example Module",
-  category = "Example"
 ) {
 
   val checkbox by CheckboxSetting(
     name = "Checkbox",
     description = "Example checkbox setting",
-    subcategory = "General",
     defaultValue = true
   )
 
   val color by ColorSetting(
     name = "Color",
     description = "Example color setting",
-    subcategory = "Appearance",
     defaultValue = Color.WHITE.rgb
   )
 
   val keyBind by KeyBindSetting(
     name = "KeyBind",
     description = "Example keybind setting",
-    subcategory = "Controls",
     defaultValue = GLFW.GLFW_KEY_ESCAPE
   )
 
   val mode by ModeSetting(
     name = "Mode",
     description = "Example mode setting",
-    subcategory = "Modes",
     defaultValue = 0,
     options = arrayOf("Mode1", "Mode2", "Mode3")
   )
@@ -42,7 +37,6 @@ object ExampleModule : Module(
   val range by RangeSetting(
     name = "Range",
     description = "Example range setting",
-    subcategory = "Numbers",
     defaultValue = Pair(3.0, 5.0),
     min = 0.0,
     max = 10.0
@@ -51,7 +45,6 @@ object ExampleModule : Module(
   val slider by SliderSetting(
     name = "Slider",
     description = "Example slider setting",
-    subcategory = "Numbers",
     defaultValue = 3.0,
     min = 1.0,
     max = 10.0
@@ -60,7 +53,6 @@ object ExampleModule : Module(
   val text by TextSetting(
     name = "Text",
     description = "Example text setting",
-    subcategory = "General",
     defaultValue = "Hello"
   )
 
@@ -71,4 +63,5 @@ object ExampleModule : Module(
   override fun onDisable() {
     println("Disabled")
   }
+
 }

@@ -33,6 +33,7 @@ dependencies {
   modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
   modImplementation("org.cobalt:cobalt:1.0.0")
+  modImplementation("dev.quiteboring:swift:1.0.0")
   modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.1")
 }
 
