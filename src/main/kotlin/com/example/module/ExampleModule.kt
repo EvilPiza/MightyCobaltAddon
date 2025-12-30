@@ -56,12 +56,4 @@ object ExampleModule : Module(
     defaultValue = "Hello"
   )
 
-  override fun onEnable() {
-    println("Enabled")
-  }
-
-  override fun onDisable() {
-    println("Disabled")
-  }
-
 }
