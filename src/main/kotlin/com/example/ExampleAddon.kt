@@ -1,7 +1,6 @@
 package com.example
 
 import com.example.command.ExampleCommand
-import com.example.module.AutoSprint
 import com.example.module.ExampleModule
 import org.cobalt.api.addon.Addon
 import org.cobalt.api.command.CommandManager
@@ -19,7 +18,7 @@ object ExampleAddon : Addon() {
   }
 
   override fun getModules(): List<Module> {
-    return listOf(ExampleModule, AutoSprint)
+    return listOf(ExampleModule)
   }
 
 }
