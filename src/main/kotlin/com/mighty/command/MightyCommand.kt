@@ -10,6 +10,8 @@ import org.cobalt.api.command.annotation.DefaultHandler
 import org.cobalt.api.command.annotation.SubCommand
 import org.cobalt.api.util.ChatUtils
 import kotlin.concurrent.thread
+import net.minecraft.util.math.Box
+import org.cobalt.api.util.render.Render3D
 
 object MightyCommand : Command(
   name = "mighty",
@@ -23,6 +25,10 @@ object MightyCommand : Command(
     ChatUtils.sendMessage("what does bro want?")
   }
 
+  fun round(number: Double): Int {
+    return kotlin.math.floor(number).toInt()
+  }
+
   @SubCommand
   fun to(x: Int, y: Int, z: Int) {
     val player = mc.player ?: run {
@@ -31,9 +37,9 @@ object MightyCommand : Command(
     }
 
     val startPos = BlockPos(
-      player.x.toInt(),
-      player.y.toInt() - 1,
-      player.z.toInt()
+      round(player.x),
+      round(player.y) - 1,
+      round(player.z)
     )
     val endPos = BlockPos(x, y - 2, z)
 
@@ -46,8 +52,8 @@ object MightyCommand : Command(
         val startData = NodeData(startPos, 0.0, false)
         val endData = NodeData(endPos, 0.0, false)
 
-        val pathfinder = Pathfinder(startData, endData)
-        val path = pathfinder.calculatePath()
+        val pathfinder = Pathfinder()
+        val path = pathfinder.calculatePath(startData, endData)
 
         mc.execute {
           if (path != null && path.isNotEmpty()) {

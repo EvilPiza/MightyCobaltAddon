@@ -14,12 +14,14 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.sqrt
+import org.cobalt.Cobalt
+import org.cobalt.api.pathfinder.IPathExec
 
-class Pathfinder(beginData: NodeData, end: NodeData) {
+class Pathfinder() : IPathExec {
   private val mc = MinecraftClient.getInstance()
 
-  private val goal: Node
-  private val start: Node
+  private lateinit var goal: Node
+  private lateinit var start: Node
   private val openQueue: PriorityQueue<Node>
   private val openSet: HashMap<BlockPos, Node>
   private val closestSet: HashMap<BlockPos, Node>
@@ -30,8 +32,7 @@ class Pathfinder(beginData: NodeData, end: NodeData) {
   private val directions: ArrayList<BlockPos>
 
   init {
-    start = Node(beginData, 0.0, Double.MAX_VALUE, null)
-    goal = Node(end, Double.MAX_VALUE, 0.0, null)
+    //Cobalt.setPathExec(Pathfinder()) <- Spams StackOverflowError: null TODO: fix ig idk
 
     openQueue = PriorityQueue(
       compareBy<Node> { it.fCost }
@@ -46,12 +47,6 @@ class Pathfinder(beginData: NodeData, end: NodeData) {
     stateCache = HashMap()
     directions = ArrayList()
 
-    start.hCost = getHeuristic(beginData)
-    start.fCost = start.gCost + start.hCost
-
-    openQueue.add(start)
-    openSet[start.data.pos] = start
-
     directions.apply {
       add(BlockPos(1, 0, 0))
       add(BlockPos(-1, 0, 0))
@@ -60,7 +55,16 @@ class Pathfinder(beginData: NodeData, end: NodeData) {
     }
   }
 
-  fun calculatePath(): List<Node>? {
+  fun calculatePath(beginData: NodeData, end: NodeData): List<Node>? {
+    start = Node(beginData, 0.0, Double.MAX_VALUE, null)
+    goal = Node(end, Double.MAX_VALUE, 0.0, null)
+
+    start.hCost = getHeuristic(beginData)
+    start.fCost = start.gCost + start.hCost
+
+    openQueue.add(start)
+    openSet[start.data.pos] = start
+
     while (openQueue.isNotEmpty()) {
       val current = openQueue.poll()
       val currentPos = current.data.pos
