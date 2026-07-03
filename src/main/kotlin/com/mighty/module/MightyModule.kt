@@ -3,10 +3,11 @@ package com.mighty.module
 import java.awt.Color
 import org.cobalt.api.module.Module
 import org.cobalt.api.module.setting.impl.*
+import org.cobalt.api.util.helper.KeyBind
 import org.lwjgl.glfw.GLFW
 
 object MightyModule : Module(
-  name = "Example Module",
+  name = "Mighty Module",
 ) {
 
   val checkbox by CheckboxSetting(
@@ -24,7 +25,7 @@ object MightyModule : Module(
   val keyBind by KeyBindSetting(
     name = "KeyBind",
     description = "Example keybind setting",
-    defaultValue = GLFW.GLFW_KEY_ESCAPE
+    defaultValue = KeyBind(GLFW.GLFW_KEY_ESCAPE)
   )
 
   val mode by ModeSetting(

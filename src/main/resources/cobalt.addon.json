@@ -6,6 +6,6 @@
     "com.mighty.MightyAddon"
   ],
   "mixins": [
-    "exampleaddon.mixins.json"
+    "mighty.mixins.json"
   ]
 }

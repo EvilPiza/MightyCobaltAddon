@@ -1,36 +1,22 @@
-package com.mighty.command
+package com.mighty.command.commands
 
+import com.mighty.pathfinder.PathRenderer
+import com.mighty.pathfinder.PathWalker
 import com.mighty.pathfinder.Pathfinder
-import com.mighty.pathfinder.helper.Node
 import com.mighty.pathfinder.helper.NodeData
-import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.BlockPos
-import org.cobalt.api.command.Command
-import org.cobalt.api.command.annotation.DefaultHandler
-import org.cobalt.api.command.annotation.SubCommand
 import org.cobalt.api.util.ChatUtils
 import kotlin.concurrent.thread
-import net.minecraft.util.math.Box
-import org.cobalt.api.util.render.Render3D
+import net.minecraft.client.MinecraftClient
 
-object MightyCommand : Command(
-  name = "mighty",
-  aliases = arrayOf("mighty")
-) {
-  private val mc = MinecraftClient.getInstance()
-  private var cachedPath: List<Node>? = null
+private var mc = MinecraftClient.getInstance()
 
-  @DefaultHandler
-  fun main() {
-    ChatUtils.sendMessage("what does bro want?")
-  }
-
+object ToCommand {
   fun round(number: Double): Int {
     return kotlin.math.floor(number).toInt()
   }
 
-  @SubCommand
-  fun to(x: Int, y: Int, z: Int) {
+  fun execute(x: Int, y: Int, z: Int) {
     val player = mc.player ?: run {
       ChatUtils.sendMessage("§cPlayer not found!")
       return
@@ -57,19 +43,9 @@ object MightyCommand : Command(
 
         mc.execute {
           if (path != null && path.isNotEmpty()) {
-            cachedPath = path
-            ChatUtils.sendMessage(
-              "§aPath found! §e${path.size}§a (final) nodes"
-            )
-
-            ChatUtils.sendMessage("(Pretend you're walking to the nodes listed below)")
-
-            for (node in path)
-            {
-              ChatUtils.sendMessage(
-                "${node.data.pos}"
-              )
-            }
+            PathRenderer.setPath(path)
+            PathWalker.setPath(path)
+            ChatUtils.sendMessage("§aPath found! §e${path.size}§a (final) nodes")
           } else {
             ChatUtils.sendMessage("§cNo path found to target location :(")
           }
@@ -82,16 +58,4 @@ object MightyCommand : Command(
       }
     }
   }
-
-  @SubCommand
-  fun clear() {
-    if (cachedPath != null) {
-      cachedPath = null
-      ChatUtils.sendMessage("§aPath cleared!")
-    } else {
-      ChatUtils.sendMessage("§cNo path to clear!")
-    }
-  }
-
-  fun getCachedPath(): List<Node>? = cachedPath
 }

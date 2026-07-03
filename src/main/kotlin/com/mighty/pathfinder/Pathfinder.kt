@@ -14,10 +14,10 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.sqrt
-import org.cobalt.Cobalt
-import org.cobalt.api.pathfinder.IPathExec
+//import org.cobalt.Cobalt
+//import org.cobalt.api.pathfinder.IPathExec
 
-class Pathfinder() : IPathExec {
+class Pathfinder() {
   private val mc = MinecraftClient.getInstance()
 
   private lateinit var goal: Node
