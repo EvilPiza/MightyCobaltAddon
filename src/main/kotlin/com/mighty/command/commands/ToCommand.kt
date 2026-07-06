@@ -1,6 +1,6 @@
 package com.mighty.command.commands
 
-import com.mighty.pathfinder.PathRenderer
+import com.mighty.pathfinder.helper.PathRenderer
 import com.mighty.pathfinder.PathWalker
 import com.mighty.pathfinder.Pathfinder
 import com.mighty.pathfinder.helper.NodeData

@@ -1,5 +1,6 @@
 package com.mighty.pathfinder.helper
 
+import com.mighty.module.Rotations
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.MathHelper
 import org.cobalt.api.event.annotation.SubscribeEvent
@@ -11,27 +12,25 @@ import kotlin.random.Random
 object Rotation {
   private val mc = MinecraftClient.getInstance()
 
-  private const val stiffness = 190f
-  private const val dampingRatio = 0.58f
-  private const val retargetThreshold = 2.5f
-  private const val arrivedYawThreshold = 0.15f
-  private const val arrivedVelocityThreshold = 1.5f
-  private const val maxDeltaSeconds = 0.1f
-
   private var active = false
   private var targetYaw = 0f
-  private var targetPitch: Float? = null
+  private var targetPitch = 0f
+  private var randomPitch = 0f
   private var yawVelocity = 0f
   private var pitchVelocity = 0f
   private var lastFrameNanos = 0L
-  private var randomPitch = 0f
+
+  // Hardcoded Settings that are just better than anything else
+  private var maxDeltaSeconds = .2f // anything lower is jittery
+  private var arrivedYawThreshold = .15f // anything less is unstable, anything more is too strict
 
   fun setTarget(yaw: Float, pitch: Float? = null) {
     val player = mc.player ?: return
     val distance = abs(MathHelper.wrapDegrees(yaw - player.yaw))
 
-    if (!active || distance >= retargetThreshold) {
-      randomPitch = Random.nextInt(5, 15).toFloat()
+    if (!active || distance >= Rotations.retargetThreshold.toFloat()) {
+      val (min, max) = Rotations.randomPitchRange
+      randomPitch = Random.nextInt(min.toInt(), max.toInt()).toFloat()
       lastFrameNanos = System.nanoTime()
       active = true
     }
@@ -46,8 +45,6 @@ object Rotation {
     pitchVelocity = 0f
   }
 
-  fun isRotating(): Boolean = active
-
   @SubscribeEvent
   fun onFrame(event: WorldRenderEvent) {
     if (!active) return
@@ -57,21 +54,18 @@ object Rotation {
     val deltaSeconds = ((now - lastFrameNanos) / 1_000_000_000f).coerceIn(0f, maxDeltaSeconds)
     lastFrameNanos = now
 
-    val dampingCoefficient = 2f * dampingRatio * sqrt(stiffness)
+    val stiffness = Rotations.stiffness.toFloat()
+    val dampingCoefficient = 2f * Rotations.dampingRatio.toFloat() * sqrt(stiffness)
 
     val yawError = MathHelper.wrapDegrees(targetYaw - player.yaw)
-    val yawAcceleration = stiffness * yawError - dampingCoefficient * yawVelocity
-    yawVelocity += yawAcceleration * deltaSeconds
+    yawVelocity += (stiffness * yawError - dampingCoefficient * yawVelocity) * deltaSeconds
     player.yaw += yawVelocity * deltaSeconds
 
-    targetPitch?.let { pitch ->
-      val pitchError = MathHelper.wrapDegrees(pitch - player.pitch)
-      val pitchAcceleration = stiffness * pitchError - dampingCoefficient * pitchVelocity
-      pitchVelocity += pitchAcceleration * deltaSeconds
-      player.pitch = MathHelper.clamp(player.pitch + pitchVelocity * deltaSeconds, -90f, 90f)
-    }
+    val pitchError = MathHelper.wrapDegrees(targetPitch - player.pitch)
+    pitchVelocity += (stiffness * pitchError - dampingCoefficient * pitchVelocity) * deltaSeconds
+    player.pitch = MathHelper.clamp(player.pitch + pitchVelocity * deltaSeconds, -90f, 90f)
 
-    if (abs(yawError) < arrivedYawThreshold && abs(yawVelocity) < arrivedVelocityThreshold) {
+    if (abs(yawError) < arrivedYawThreshold && abs(yawVelocity) < Rotations.arrivedVelocityThreshold.toFloat()) {
       active = false
       yawVelocity = 0f
       pitchVelocity = 0f

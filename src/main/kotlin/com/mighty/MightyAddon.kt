@@ -1,9 +1,8 @@
 package com.mighty
 
 import com.mighty.command.CommandHandler
-import com.mighty.module.Main
-import com.mighty.module.MightyModule
-import com.mighty.pathfinder.PathRenderer
+import com.mighty.module.Rotations
+import com.mighty.pathfinder.helper.PathRenderer
 import com.mighty.pathfinder.PathWalker
 import com.mighty.pathfinder.helper.Rotation
 import org.cobalt.api.addon.Addon
@@ -20,8 +19,7 @@ object MightyAddon : Addon() {
     listOf(
       PathRenderer,
       PathWalker,
-      Rotation,
-      Main
+      Rotation
     ).forEach(EventBus::register)
 
     println("Mighty Loaded!")
@@ -32,6 +30,6 @@ object MightyAddon : Addon() {
   }
 
   override fun getModules(): List<Module> {
-    return listOf(MightyModule)
+    return listOf(Rotations)
   }
 }

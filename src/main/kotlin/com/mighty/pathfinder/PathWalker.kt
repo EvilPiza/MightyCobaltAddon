@@ -1,6 +1,7 @@
 package com.mighty.pathfinder
 
 import com.mighty.pathfinder.helper.Node
+import com.mighty.pathfinder.helper.PathRenderer
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
@@ -29,7 +30,7 @@ object PathWalker {
   private const val maxFrameDeltaSeconds = 0.05f
 
   private var pathStartNanos = 0L
-  private const val startupGraceSeconds = 0.25f
+  private const val graceSeconds = 0.25f
 
   fun setPath(newPath: List<Node>?) {
     if (newPath.isNullOrEmpty()) {
@@ -49,8 +50,6 @@ object PathWalker {
     releaseKeys()
     Rotation.clearTarget()
   }
-
-  fun isActive(): Boolean = active
 
   @SubscribeEvent
   fun onTick(event: TickEvent.End) {
@@ -76,7 +75,7 @@ object PathWalker {
     }
 
     rotateTowards(player, targetPos)
-    applyMovementKeys(player)
+    applyMovementKeys()
   }
 
   @SubscribeEvent
@@ -105,7 +104,7 @@ object PathWalker {
     Rotation.setTarget(targetYaw)
   }
 
-  private fun applyMovementKeys(player: ClientPlayerEntity) {
+  private fun applyMovementKeys() {
     val options = mc.options
 
     options.forwardKey.isPressed = true
@@ -118,7 +117,7 @@ object PathWalker {
   private fun updateStuckState(player: ClientPlayerEntity, deltaSeconds: Float) {
     val options = mc.options
 
-    if ((System.nanoTime() - pathStartNanos) / 1_000_000_000f < startupGraceSeconds) {
+    if ((System.nanoTime() - pathStartNanos) / 1_000_000_000f < graceSeconds) {
       lastX = player.x
       lastZ = player.z
       return

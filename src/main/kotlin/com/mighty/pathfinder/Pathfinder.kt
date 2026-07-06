@@ -14,38 +14,25 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.sqrt
-//import org.cobalt.Cobalt
-//import org.cobalt.api.pathfinder.IPathExec
 
 class Pathfinder() {
   private val mc = MinecraftClient.getInstance()
 
   private lateinit var goal: Node
   private lateinit var start: Node
-  private val openQueue: PriorityQueue<Node>
-  private val openSet: HashMap<BlockPos, Node>
-  private val closestSet: HashMap<BlockPos, Node>
-  private val customSet: HashMap<BlockPos, NodeData>
-  private val cachedCosts: HashMap<BlockPos, Double>
-  private val cachedPenalties: HashMap<BlockPos, Double>
-  private val stateCache: HashMap<BlockPos, BlockState>
-  private val directions: ArrayList<BlockPos>
+
+  private val openQueue: PriorityQueue<Node> = PriorityQueue(
+    compareBy<Node> { it.fCost }
+      .thenBy { it.hCost }
+  )
+  private val openSet: HashMap<BlockPos, Node> = HashMap()
+  private val closestSet: HashMap<BlockPos, Node> = HashMap()
+  private val cachedCosts: HashMap<BlockPos, Double> = HashMap()
+  private val cachedPenalties: HashMap<BlockPos, Double> = HashMap()
+  private val stateCache: HashMap<BlockPos, BlockState> = HashMap()
+  private val directions: ArrayList<BlockPos> = ArrayList()
 
   init {
-    //Cobalt.setPathExec(Pathfinder()) <- Spams StackOverflowError: null TODO: fix ig idk
-
-    openQueue = PriorityQueue(
-      compareBy<Node> { it.fCost }
-        .thenBy { it.hCost }
-    )
-
-    openSet = HashMap()
-    closestSet = HashMap()
-    customSet = HashMap()
-    cachedCosts = HashMap()
-    cachedPenalties = HashMap()
-    stateCache = HashMap()
-    directions = ArrayList()
 
     directions.apply {
       add(BlockPos(1, 0, 0))
@@ -145,11 +132,6 @@ class Pathfinder() {
   }
 
   private fun hasEnoughHeadroom(pos: BlockPos): Boolean {
-    val baseBlock = getCachedState(pos).block
-    val baseState = getCachedState(pos)
-    val baseShape = baseState.getCollisionShape(mc.world, pos)
-    val baseHeight = if (baseShape.isEmpty) 0.0 else baseShape.boundingBox.maxY
-
     val block1 = getCachedState(pos.up()).block
     val block2 = getCachedState(pos.up(2)).block
 
@@ -186,7 +168,6 @@ class Pathfinder() {
 
   fun getNeighbours(data: NodeData): ArrayList<NodeData> {
     val neighbours = ArrayList<NodeData>()
-    val dataBlock = getCachedState(data.pos).block
     val dataState = getCachedState(data.pos)
     val dataShape = dataState.getCollisionShape(mc.world, data.pos)
     val fromTop = if (dataShape.isEmpty) 0.0 else dataShape.boundingBox.maxY
@@ -324,9 +305,6 @@ class Pathfinder() {
         var canSkip = true
 
         if (yDiff < -1) {
-          val fromBlock = getCachedState(currentPos).block
-          val toBlock = getCachedState(candidatePos).block
-
           val fromState = getCachedState(currentPos)
           val toState = getCachedState(candidatePos)
 
