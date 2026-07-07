@@ -11,67 +11,69 @@ import org.cobalt.api.event.impl.render.WorldRenderEvent
 import kotlin.math.atan2
 import kotlin.math.sqrt
 import com.mighty.pathfinder.helper.Rotation
+import kotlin.random.Random
 
 object PathWalker {
   private val mc = MinecraftClient.getInstance()
 
-  private var path: List<Node> = emptyList()
-  private var currentIndex = 0
-  private var active = false
+  private var currentPath: List<Node> = emptyList()
+  private var currentNodeIndex = 0
+  private var isActive = false
 
-  private var lastX = 0.0
-  private var lastZ = 0.0
-  private var lastFrameNanos = 0L
-  private var stuckSeconds = 0f
+  private var lastPlayerX = 0.0
+  private var lastPlayerZ = 0.0
+  private var lastFrameTimeNanos = 0L
+  private var pathStartTimeNanos = 0L
+  private var stuckDurationSeconds = 0f
 
-  private const val nodeReachDistance = 0.75
-  private const val stuckMovementThreshold = 0.02
-  private const val stuckSecondsBeforeJump = 0.05f
-  private const val maxFrameDeltaSeconds = 0.05f
+  private var minStuckThresholdSeconds = 0.05f
+  private var maxStuckThresholdSeconds = 0.1f
 
-  private var pathStartNanos = 0L
-  private const val graceSeconds = 0.25f
+  private const val REACH_DISTANCE = 0.75f
+  private const val MOVEMENT_STUCK_THRESHOLD = 0.05f
+  private const val MAX_FRAME_DELTA_SECONDS = 0.05f
+  private const val START_GRACE_PERIOD_SECONDS = 0.25f
 
   fun setPath(newPath: List<Node>?) {
     if (newPath.isNullOrEmpty()) {
       stop()
       return
     }
-    path = newPath
-    currentIndex = 0
-    stuckSeconds = 0f
-    pathStartNanos = System.nanoTime()
-    active = true
+    currentPath = newPath
+    currentNodeIndex = 0
+    stuckDurationSeconds = 0f
+    pathStartTimeNanos = System.nanoTime()
+    isActive = true
   }
 
   fun stop() {
-    active = false
-    stuckSeconds = 0f
+    isActive = false
+    stuckDurationSeconds = 0f
     releaseKeys()
     Rotation.clearTarget()
   }
 
   @SubscribeEvent
   fun onTick(event: TickEvent.End) {
-    if (!active) return
+    if (!isActive) return
     val player = mc.player ?: return
 
-    if (currentIndex >= path.size) {
+    if (currentNodeIndex >= currentPath.size) {
       stop()
       PathRenderer.setPath(null)
       return
     }
 
-    var targetPos = path[currentIndex].data.pos
+    var targetPos = currentPath[currentNodeIndex].data.pos
 
     while (isWithinReach(player, targetPos)) {
-      currentIndex++
-      stuckSeconds = 0f
-      if (currentIndex >= path.size) {
+      currentNodeIndex++
+      stuckDurationSeconds = 0f
+      if (currentNodeIndex >= currentPath.size) {
         stop()
         return
       }
-      targetPos = path[currentIndex].data.pos
+      targetPos = currentPath[currentNodeIndex].data.pos
     }
 
     rotateTowards(player, targetPos)
@@ -80,12 +82,12 @@ object PathWalker {
 
   @SubscribeEvent
   fun onFrame(event: WorldRenderEvent) {
-    if (!active) return
+    if (!isActive) return
     val player = mc.player ?: return
 
     val now = System.nanoTime()
-    val deltaSeconds = ((now - lastFrameNanos) / 1_000_000_000f).coerceIn(0f, maxFrameDeltaSeconds)
-    lastFrameNanos = now
+    val deltaSeconds = ((now - lastFrameTimeNanos) / 1_000_000_000f).coerceIn(0f, MAX_FRAME_DELTA_SECONDS)
+    lastFrameTimeNanos = now
 
     updateStuckState(player, deltaSeconds)
   }
@@ -93,7 +95,7 @@ object PathWalker {
   private fun isWithinReach(player: ClientPlayerEntity, targetPos: BlockPos): Boolean {
     val dx = (targetPos.x + 0.5) - player.x
     val dz = (targetPos.z + 0.5) - player.z
-    return sqrt(dx * dx + dz * dz) < nodeReachDistance
+    return sqrt(dx * dx + dz * dz) < REACH_DISTANCE
   }
 
   private fun rotateTowards(player: ClientPlayerEntity, targetPos: BlockPos) {
@@ -117,32 +119,32 @@ object PathWalker {
   private fun updateStuckState(player: ClientPlayerEntity, deltaSeconds: Float) {
     val options = mc.options
 
-    if ((System.nanoTime() - pathStartNanos) / 1_000_000_000f < graceSeconds) {
-      lastX = player.x
-      lastZ = player.z
+    if ((System.nanoTime() - pathStartTimeNanos) / 1_000_000_000f < START_GRACE_PERIOD_SECONDS) {
+      lastPlayerX = player.x
+      lastPlayerZ = player.z
       return
     }
 
     if (player.horizontalCollision && player.isOnGround) {
       options.jumpKey.isPressed = true
-      stuckSeconds = 0f
-      lastX = player.x
-      lastZ = player.z
+      stuckDurationSeconds = 0f
+      lastPlayerX = player.x
+      lastPlayerZ = player.z
       return
     }
 
-    val movedDistance = sqrt((player.x - lastX) * (player.x - lastX) + (player.z - lastZ) * (player.z - lastZ))
+    val movedDistance = sqrt((player.x - lastPlayerX) * (player.x - lastPlayerX) + (player.z - lastPlayerZ) * (player.z - lastPlayerZ))
 
-    if (player.isOnGround && movedDistance < stuckMovementThreshold) {
-      stuckSeconds += deltaSeconds
+    if (player.isOnGround && movedDistance < MOVEMENT_STUCK_THRESHOLD) {
+      stuckDurationSeconds += deltaSeconds
     } else {
-      stuckSeconds = 0f
+      stuckDurationSeconds = 0f
     }
 
-    options.jumpKey.isPressed = stuckSeconds >= stuckSecondsBeforeJump
+    options.jumpKey.isPressed = stuckDurationSeconds >= Random.nextFloat() * (maxStuckThresholdSeconds - minStuckThresholdSeconds) + minStuckThresholdSeconds
 
-    lastX = player.x
-    lastZ = player.z
+    lastPlayerX = player.x
+    lastPlayerZ = player.z
   }
 
   private fun releaseKeys() {

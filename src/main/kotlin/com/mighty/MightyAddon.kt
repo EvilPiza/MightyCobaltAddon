@@ -16,6 +16,7 @@ object MightyAddon : Addon() {
 
   override fun onLoad() {
     CommandManager.register(CommandHandler)
+
     listOf(
       PathRenderer,
       PathWalker,
