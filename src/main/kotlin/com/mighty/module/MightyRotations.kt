@@ -9,8 +9,7 @@ import org.cobalt.ui.component.setting.impl.CheckboxSetting
 object MightyRotations : Module(
   name = "Mighty Rotations",
   category = ModuleCategory.MISC,
-  toggleable = false,
-  startValue = true
+  toggleable = false
 ) {
   val useCobaltRots by CheckboxSetting(
     name = "Use Default",
