@@ -1,16 +1,8 @@
 package com.mighty.pathfinder.helper
 
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 
 class NodeData(
   val pos: BlockPos,
-  val movement: Double,
-  val isCustomNode: Boolean
-) {
-  var parent: BlockPos? = null
-  var isJumpTarget: Boolean = false
-
-  fun setCustomParent(pos: BlockPos) {
-    this.parent = pos
-  }
-}
+  val movement: Double
+)

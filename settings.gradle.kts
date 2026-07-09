@@ -15,4 +15,4 @@ pluginManagement {
   }
 }
 
-rootProject.name = "MightyAddon"
+rootProject.name = providers.gradleProperty("addonName").get()

@@ -2,11 +2,6 @@ package com.mighty.pathfinder
 
 import com.mighty.pathfinder.helper.Node
 import com.mighty.pathfinder.helper.NodeData
-import net.minecraft.block.*
-import net.minecraft.client.MinecraftClient
-import net.minecraft.registry.Registries
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.shape.VoxelShapes
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -14,9 +9,15 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.sqrt
+import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.level.block.*
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.phys.shapes.Shapes
 
 class Pathfinder() {
-  private val mc = MinecraftClient.getInstance()
+  private val mc = Minecraft.getInstance()
 
   private lateinit var goal: Node
   private lateinit var start: Node
@@ -100,7 +101,7 @@ class Pathfinder() {
       }
 
       for (direction in directions) {
-        val goalCheck = currentPos.add(direction)
+        val goalCheck = currentPos.offset(direction)
         if (goalCheck == goal.data.pos) {
           goal.parent = current
           return smoothPath(reconstructPath(goal))
@@ -113,7 +114,7 @@ class Pathfinder() {
 
   private fun getCachedState(pos: BlockPos): BlockState {
     return stateCache.getOrPut(pos) {
-      mc.world?.getBlockState(pos) ?: Blocks.AIR.defaultState
+      mc.level?.getBlockState(pos) ?: Blocks.AIR.defaultBlockState()
     }
   }
 
@@ -121,21 +122,21 @@ class Pathfinder() {
     var state = getCachedState(pos)
     var block = state.block
 
-    if (block is AbstractRailBlock) {
-      state = getCachedState(pos.down())
+    if (block is RailBlock) {
+      state = getCachedState(pos.below())
       block = state.block
     }
 
     if (block is FenceBlock ||
       block is FenceGateBlock ||
-      block.translationKey.contains("fence")) {
+      block.descriptionId.contains("fence")) {
       return false
     }
 
     state = getCachedState(pos)
 
-    if (block !is FluidBlock &&
-      (state.blocksMovement() || Registries.BLOCK.getRawId(block) == 78)) {
+    if (block !is LiquidBlock &&
+      (state.blocksMotion() || BuiltInRegistries.BLOCK.getId(block) == 78)) {
       return hasEnoughHeadroom(pos)
     }
 
@@ -143,8 +144,8 @@ class Pathfinder() {
   }
 
   private fun hasEnoughHeadroom(pos: BlockPos): Boolean {
-    val stateAbove1 = getCachedState(pos.up())
-    val stateAbove2 = getCachedState(pos.up(2))
+    val stateAbove1 = getCachedState(pos.above())
+    val stateAbove2 = getCachedState(pos.above(2))
     val blockAbove1 = stateAbove1.block
     val blockAbove2 = stateAbove2.block
 
@@ -153,25 +154,21 @@ class Pathfinder() {
       return false
     }
 
-    if (blockAbove1 is AbstractRailBlock || blockAbove2 is AbstractRailBlock) {
-      return true
-    }
-
     val requiredClearance = 1.8
     var availableClearance = 0.0
 
-    val shapeAbove1 = stateAbove1.getCollisionShape(mc.world, pos.up())
+    val shapeAbove1 = stateAbove1.getCollisionShape(mc.level!!, pos.above())
     if (blockAbove1 == Blocks.AIR) {
       availableClearance += 1.0
     } else if (!shapeAbove1.isEmpty) {
-      availableClearance += (1.0 - shapeAbove1.boundingBox.maxY)
+      availableClearance += (1.0 - shapeAbove1.bounds().maxY)
     }
 
-    val shapeAbove2 = stateAbove2.getCollisionShape(mc.world, pos.up(2))
+    val shapeAbove2 = stateAbove2.getCollisionShape(mc.level!!, pos.above(2))
     if (blockAbove2 == Blocks.AIR) {
       availableClearance += 1.0
     } else if (!shapeAbove2.isEmpty) {
-      availableClearance += (1.0 - shapeAbove2.boundingBox.maxY)
+      availableClearance += (1.0 - shapeAbove2.bounds().maxY)
     }
 
     return availableClearance >= requiredClearance
@@ -180,14 +177,14 @@ class Pathfinder() {
   fun getNeighbours(data: NodeData): ArrayList<NodeData> {
     val neighbours = ArrayList<NodeData>()
     val originState = getCachedState(data.pos)
-    val originShape = originState.getCollisionShape(mc.world, data.pos)
-    val originTopY = if (originShape.isEmpty) 0.0 else originShape.boundingBox.maxY
+    val originShape = originState.getCollisionShape(mc.level!!, data.pos)
+    val originTopY = if (originShape.isEmpty) 0.0 else originShape.bounds().maxY
 
     for (offset in directions) {
-      val neighbourColumn = data.pos.add(offset)
+      val neighbourColumn = data.pos.offset(offset)
 
       if (neighbourColumn == goal.data.pos) {
-        neighbours.add(NodeData(neighbourColumn, 2.0, false))
+        neighbours.add(NodeData(neighbourColumn, 2.0))
         continue
       }
 
@@ -195,12 +192,12 @@ class Pathfinder() {
       var totalChecked = 0
 
       for (y in 1 downTo -6) {
-        val candidatePos = neighbourColumn.add(0, y, 0)
+        val candidatePos = neighbourColumn.offset(0, y, 0)
         val candidateState = getCachedState(candidatePos)
         val candidateBlock = candidateState.block
 
-        val candidateShape = candidateState.getCollisionShape(mc.world, candidatePos)
-        val candidateTopY = if (candidateShape.isEmpty) 0.0 + y else candidateShape.boundingBox.maxY + y
+        val candidateShape = candidateState.getCollisionShape(mc.level!!, candidatePos)
+        val candidateTopY = if (candidateShape.isEmpty) 0.0 + y else candidateShape.bounds().maxY + y
         val requiredJump = candidateTopY - originTopY
 
         if (requiredJump > 1.2) {
@@ -212,18 +209,18 @@ class Pathfinder() {
             break
           }
 
-          val candidateHeight = if (candidateShape.isEmpty) 0.0 else candidateShape.boundingBox.maxY
+          val candidateHeight = if (candidateShape.isEmpty) 0.0 else candidateShape.bounds().maxY
           var cost = if (y == 1 && candidateHeight != 0.5) 4.0 else 2.0
           if (y < -1) {
             cost *= abs(y).toDouble()
           }
 
           var landingPos = candidatePos
-          if (candidateBlock is AbstractRailBlock) {
-            landingPos = candidatePos.down()
+          if (candidateBlock is RailBlock) {
+            landingPos = candidatePos.below()
           }
 
-          neighbours.add(NodeData(landingPos, cost, false))
+          neighbours.add(NodeData(landingPos, cost))
           break
         }
 
@@ -245,10 +242,10 @@ class Pathfinder() {
 
     for (x in -1..1) {
       for (z in -1..1) {
-        val checkPos = data.pos.add(x, 1, z)
+        val checkPos = data.pos.offset(x, 1, z)
         val checkBlock = getCachedState(checkPos).block
 
-        val id = Registries.BLOCK.getRawId(checkBlock)
+        val id = BuiltInRegistries.BLOCK.getId(checkBlock)
         if (id != 0 && id != 78 && id != 80) {
           cost += 2.0
         }
@@ -313,8 +310,8 @@ class Pathfinder() {
           val fromState = getCachedState(currentPos)
           val toState = getCachedState(candidatePos)
 
-          val fromHeight = fromState.getCollisionShape(mc.world, currentPos).boundingBox.maxY
-          val toHeight = toState.getCollisionShape(mc.world, candidatePos).boundingBox.maxY
+          val fromHeight = fromState.getCollisionShape(mc.level!!, currentPos).bounds().maxY
+          val toHeight = toState.getCollisionShape(mc.level!!, candidatePos).bounds().maxY
 
           val hasSlabs = abs(fromHeight - 0.5) < 0.01 || abs(toHeight - 0.5) < 0.01
 
@@ -355,9 +352,9 @@ class Pathfinder() {
       val block = state.block
 
       if (block != Blocks.AIR &&
-        state.blocksMovement() &&
-        state.getCollisionShape(mc.world, checkPos) == VoxelShapes.fullCube() &&
-        block !is FluidBlock) {
+        state.blocksMotion() &&
+        state.getCollisionShape(mc.level!!, checkPos) == Shapes.block() &&
+        block !is LiquidBlock) {
         return false
       }
 

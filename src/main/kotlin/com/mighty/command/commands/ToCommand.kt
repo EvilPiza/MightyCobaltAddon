@@ -4,12 +4,12 @@ import com.mighty.pathfinder.helper.PathRenderer
 import com.mighty.pathfinder.PathWalker
 import com.mighty.pathfinder.Pathfinder
 import com.mighty.pathfinder.helper.NodeData
-import net.minecraft.util.math.BlockPos
-import org.cobalt.api.util.ChatUtils
+import net.minecraft.client.Minecraft
 import kotlin.concurrent.thread
-import net.minecraft.client.MinecraftClient
+import net.minecraft.core.BlockPos
+import org.cobalt.util.ChatUtils
 
-private var mc = MinecraftClient.getInstance()
+private var mc = Minecraft.getInstance()
 
 object ToCommand {
   fun round(number: Double): Int {
@@ -18,7 +18,7 @@ object ToCommand {
 
   fun execute(x: Int, y: Int, z: Int) {
     val player = mc.player ?: run {
-      ChatUtils.sendMessage("§cPlayer not found!")
+      ChatUtils.sendPlayerMessage("Player not found!")
       return
     }
 
@@ -29,14 +29,14 @@ object ToCommand {
     )
     val endPos = BlockPos(x, y - 2, z)
 
-    ChatUtils.sendMessage(
+    ChatUtils.sendSystemMessage(
       "§aCalculating path from §e${startPos.x}, ${startPos.y + 2}, ${startPos.z}§a to §e${x}, ${y}, ${z}§a..."
     )
 
     thread {
       try {
-        val startData = NodeData(startPos, 0.0, false)
-        val endData = NodeData(endPos, 0.0, false)
+        val startData = NodeData(startPos, 0.0)
+        val endData = NodeData(endPos, 0.0)
 
         val pathfinder = Pathfinder()
         val path = pathfinder.calculatePath(startData, endData)
@@ -45,14 +45,14 @@ object ToCommand {
           if (path != null && path.isNotEmpty()) {
             PathRenderer.setPath(path)
             PathWalker.setPath(path)
-            ChatUtils.sendMessage("§aPath found! §e${path.size}§a (final) nodes")
+            ChatUtils.sendPlayerMessage("Path found! ${path.size} (final) nodes")
           } else {
-            ChatUtils.sendMessage("§cNo path found to target location :(")
+            ChatUtils.sendPlayerMessage("No path found to target location :(")
           }
         }
       } catch (e: Exception) {
         mc.execute {
-          ChatUtils.sendMessage("§cError calculating path: ${e.message}")
+          ChatUtils.sendPlayerMessage("Error calculating path: ${e.message}")
           e.printStackTrace()
         }
       }

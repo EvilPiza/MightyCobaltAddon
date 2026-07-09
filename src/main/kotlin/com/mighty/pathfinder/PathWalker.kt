@@ -2,19 +2,19 @@ package com.mighty.pathfinder
 
 import com.mighty.pathfinder.helper.Node
 import com.mighty.pathfinder.helper.PathRenderer
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.util.math.BlockPos
-import org.cobalt.api.event.annotation.SubscribeEvent
-import org.cobalt.api.event.impl.client.TickEvent
-import org.cobalt.api.event.impl.render.WorldRenderEvent
 import kotlin.math.atan2
 import kotlin.math.sqrt
 import com.mighty.pathfinder.helper.Rotation
 import kotlin.random.Random
+import net.minecraft.client.Minecraft
+import net.minecraft.client.player.LocalPlayer
+import net.minecraft.core.BlockPos
+import org.cobalt.event.annotation.SubscribeEvent
+import org.cobalt.event.impl.TickEvent
+import org.cobalt.event.impl.WorldRenderEvent
 
 object PathWalker {
-  private val mc = MinecraftClient.getInstance()
+  private val mc = Minecraft.getInstance()
 
   private var currentPath: List<Node> = emptyList()
   private var currentNodeIndex = 0
@@ -92,13 +92,13 @@ object PathWalker {
     updateStuckState(player, deltaSeconds)
   }
 
-  private fun isWithinReach(player: ClientPlayerEntity, targetPos: BlockPos): Boolean {
+  private fun isWithinReach(player: LocalPlayer, targetPos: BlockPos): Boolean {
     val dx = (targetPos.x + 0.5) - player.x
     val dz = (targetPos.z + 0.5) - player.z
     return sqrt(dx * dx + dz * dz) < REACH_DISTANCE
   }
 
-  private fun rotateTowards(player: ClientPlayerEntity, targetPos: BlockPos) {
+  private fun rotateTowards(player: LocalPlayer, targetPos: BlockPos) {
     val dx = (targetPos.x + 0.5) - player.x
     val dz = (targetPos.z + 0.5) - player.z
 
@@ -109,14 +109,14 @@ object PathWalker {
   private fun applyMovementKeys() {
     val options = mc.options
 
-    options.forwardKey.isPressed = true
-    options.backKey.isPressed = false
-    options.leftKey.isPressed = false
-    options.rightKey.isPressed = false
-    options.sprintKey.isPressed = true
+    options.keyUp.isDown = true
+    options.keyDown.isDown = false
+    options.keyLeft.isDown = false
+    options.keyRight.isDown = false
+    options.keySprint.isDown = true
   }
 
-  private fun updateStuckState(player: ClientPlayerEntity, deltaSeconds: Float) {
+  private fun updateStuckState(player: LocalPlayer, deltaSeconds: Float) {
     val options = mc.options
 
     if ((System.nanoTime() - pathStartTimeNanos) / 1_000_000_000f < START_GRACE_PERIOD_SECONDS) {
@@ -125,8 +125,8 @@ object PathWalker {
       return
     }
 
-    if (player.horizontalCollision && player.isOnGround) {
-      options.jumpKey.isPressed = true
+    if (player.horizontalCollision && player.onGround()) {
+      options.keyJump.isDown = true
       stuckDurationSeconds = 0f
       lastPlayerX = player.x
       lastPlayerZ = player.z
@@ -135,13 +135,13 @@ object PathWalker {
 
     val movedDistance = sqrt((player.x - lastPlayerX) * (player.x - lastPlayerX) + (player.z - lastPlayerZ) * (player.z - lastPlayerZ))
 
-    if (player.isOnGround && movedDistance < MOVEMENT_STUCK_THRESHOLD) {
+    if (player.onGround() && movedDistance < MOVEMENT_STUCK_THRESHOLD) {
       stuckDurationSeconds += deltaSeconds
     } else {
       stuckDurationSeconds = 0f
     }
 
-    options.jumpKey.isPressed = stuckDurationSeconds >= Random.nextFloat() * (maxStuckThresholdSeconds - minStuckThresholdSeconds) + minStuckThresholdSeconds
+    options.keyJump.isDown = stuckDurationSeconds >= Random.nextFloat() * (maxStuckThresholdSeconds - minStuckThresholdSeconds) + minStuckThresholdSeconds
 
     lastPlayerX = player.x
     lastPlayerZ = player.z
@@ -149,11 +149,11 @@ object PathWalker {
 
   private fun releaseKeys() {
     val options = mc.options
-    options.forwardKey.isPressed = false
-    options.backKey.isPressed = false
-    options.leftKey.isPressed = false
-    options.rightKey.isPressed = false
-    options.sprintKey.isPressed = false
-    options.jumpKey.isPressed = false
+    options.keyUp.isDown = false
+    options.keyDown.isDown = false
+    options.keyLeft.isDown = false
+    options.keyRight.isDown = false
+    options.keySprint.isDown = false
+    options.keyJump.isDown = false
   }
 }

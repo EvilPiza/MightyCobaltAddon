@@ -1,20 +1,19 @@
 package com.mighty.pathfinder.helper
 
-import net.minecraft.util.math.Box
-import org.cobalt.api.event.annotation.SubscribeEvent
-import org.cobalt.api.event.impl.render.WorldRenderContext
-import org.cobalt.api.event.impl.render.WorldRenderEvent
-import org.cobalt.api.util.render.Render3D
 import java.awt.Color
+import net.minecraft.world.phys.AABB
+import org.cobalt.event.annotation.SubscribeEvent
+import org.cobalt.event.impl.WorldRenderEvent
+import org.cobalt.util.WorldRenderUtils
 
 object PathRenderer {
 
-  private var renderBoxes: List<Box> = emptyList()
+  private var renderBoxes: List<AABB> = emptyList()
   private var color: Color = Color(241, 188, 0)
 
   @SubscribeEvent
   fun onWorldRender(event: WorldRenderEvent) {
-    render(event.context)
+    render()
   }
 
   fun setPath(path: List<Node>?) {
@@ -22,7 +21,7 @@ object PathRenderer {
       val x = node.data.pos.x.toDouble()
       val y = node.data.pos.y.toDouble()
       val z = node.data.pos.z.toDouble()
-      Box(x, y, z, x + 1, y + 1, z + 1)
+      AABB(x, y, z, x + 1, y + 1, z + 1)
     } ?: emptyList()
   }
 
@@ -30,11 +29,11 @@ object PathRenderer {
     color = newColor
   }
 
-  fun getPath(): List<Box> = renderBoxes
+  fun getPath(): List<AABB> = renderBoxes
 
-  fun render(context: WorldRenderContext) {
+  fun render() {
     for (box in renderBoxes) {
-      Render3D.drawBox(context, box, color = color, true)
+      WorldRenderUtils.drawBox(box, color)
     }
   }
 }
