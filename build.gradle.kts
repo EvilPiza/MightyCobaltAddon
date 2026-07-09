@@ -31,7 +31,7 @@ dependencies {
   implementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
   implementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
-  implementation("com.github.CobaltScripts:Cobalt:master-SNAPSHOT") {
+  implementation("com.github.CobaltScripts:Cobalt:master-7e168588dc-1") {
     exclude(group = "com.jagrosh", module = "DiscordIPC")
   }
   implementation("io.github.CDAGaming:DiscordIPC:0.10.2")

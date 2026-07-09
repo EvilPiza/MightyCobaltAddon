@@ -1,7 +1,7 @@
 {
   "id": "mighty_addon",
   "name": "Mighty Addon",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "entrypoints": [
     "com.mighty.MightyAddon"
   ],

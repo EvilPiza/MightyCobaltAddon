@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "id": "mighty",
-  "version": "1.0.0",
+  "id": "mighty_addon",
+  "version": "1.0.1",
   "name": "MightyAddon",
   "description": "Mighty mod but for Cobalt!",
   "authors": [
