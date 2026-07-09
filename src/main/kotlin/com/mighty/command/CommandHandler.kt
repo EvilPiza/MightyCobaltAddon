@@ -12,7 +12,7 @@ object CommandHandler : Command(
 ) {
   @DefaultHandler
   fun main() {
-    ChatUtils.sendPlayerMessage("what does bro want?")
+    ChatUtils.sendSystemMessage("what does bro want?")
   }
 
   @SubCommand

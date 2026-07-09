@@ -18,7 +18,7 @@ object ToCommand {
 
   fun execute(x: Int, y: Int, z: Int) {
     val player = mc.player ?: run {
-      ChatUtils.sendPlayerMessage("Player not found!")
+      ChatUtils.sendSystemMessage("Player not found!")
       return
     }
 
@@ -45,14 +45,14 @@ object ToCommand {
           if (path != null && path.isNotEmpty()) {
             PathRenderer.setPath(path)
             PathWalker.setPath(path)
-            ChatUtils.sendPlayerMessage("Path found! ${path.size} (final) nodes")
+            ChatUtils.sendSystemMessage("Path found! ${path.size} (final) nodes")
           } else {
-            ChatUtils.sendPlayerMessage("No path found to target location :(")
+            ChatUtils.sendSystemMessage("No path found to target location :(")
           }
         }
       } catch (e: Exception) {
         mc.execute {
-          ChatUtils.sendPlayerMessage("Error calculating path: ${e.message}")
+          ChatUtils.sendSystemMessage("Error calculating path: ${e.message}")
           e.printStackTrace()
         }
       }
