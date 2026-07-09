@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "mighty_addon",
+  "id": "mightyaddon",
   "version": "1.0.1",
   "name": "MightyAddon",
   "description": "Mighty mod but for Cobalt!",
@@ -8,7 +8,6 @@
     "Bloxfriend590"
   ],
   "contact": {
-    "homepage": "https://google.com",
     "sources": "https://github.com/EvilPiza/MightyCobaltAddon"
   },
   "license": "CC0-1.0",
