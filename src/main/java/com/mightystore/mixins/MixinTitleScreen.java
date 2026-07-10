@@ -1,4 +1,4 @@
-package com.mighty.mixins;
+package com.mightystore.mixins;
 
 import net.minecraft.client.gui.screens.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;

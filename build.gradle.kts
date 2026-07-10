@@ -7,15 +7,15 @@ plugins {
   java
 }
 
-val baseGroup: String by project
+val base_group: String by project
 val lwjglVersion: String by project
-val addonVersion: String by project
-val addonName: String by project
+val mod_version: String by project
+val mod_name: String by project
 
 base {
-  archivesName = addonName
-  version = addonVersion
-  group = baseGroup
+  archivesName = mod_name
+  version = mod_version
+  group = base_group
 }
 
 repositories {

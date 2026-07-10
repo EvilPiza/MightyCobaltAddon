@@ -15,4 +15,4 @@ pluginManagement {
   }
 }
 
-rootProject.name = providers.gradleProperty("addonName").get()
+rootProject.name = providers.gradleProperty("mod_name").get()

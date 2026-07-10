@@ -1,8 +1,8 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "com.mighty.mixins",
-  "compatibilityLevel": "JAVA_17",
+  "package": "${base_group}.mixins",
+  "compatibilityLevel": "JAVA_25",
   "injectors": {
     "defaultRequire": 1
   },

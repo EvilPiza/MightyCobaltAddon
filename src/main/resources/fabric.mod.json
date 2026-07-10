@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "mightyaddon",
-  "version": "1.0.1",
-  "name": "MightyAddon",
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
   "description": "Mighty mod but for Cobalt!",
   "authors": [
     "Bloxfriend590"
@@ -11,18 +11,18 @@
     "sources": "https://github.com/EvilPiza/MightyCobaltAddon"
   },
   "license": "CC0-1.0",
-  "icon": "assets/mighty/icon.png",
+  "icon": "assets/${mod_id}/icon.png",
   "environment": "*",
   "entrypoints": {
     "cobalt": [
       {
         "adapter": "kotlin",
-        "value": "com.mighty.MightyAddon"
+        "value": "${base_group}.${mod_name}"
       }
     ]
   },
   "mixins": [
-    "mighty.mixins.json"
+    "${mod_id}.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
