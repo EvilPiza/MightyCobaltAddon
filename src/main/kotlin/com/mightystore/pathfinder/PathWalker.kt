@@ -1,10 +1,10 @@
-package com.mighty.pathfinder
+package com.mightystore.pathfinder
 
-import com.mighty.pathfinder.helper.Node
-import com.mighty.pathfinder.helper.PathRenderer
+import com.mightystore.pathfinder.helper.Node
+import com.mightystore.pathfinder.helper.PathRenderer
 import kotlin.math.atan2
 import kotlin.math.sqrt
-import com.mighty.pathfinder.helper.Rotation
+import com.mightystore.pathfinder.helper.Rotation
 import kotlin.random.Random
 import net.minecraft.client.Minecraft
 import net.minecraft.client.player.LocalPlayer

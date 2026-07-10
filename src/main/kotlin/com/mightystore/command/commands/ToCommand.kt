@@ -1,9 +1,9 @@
-package com.mighty.command.commands
+package com.mightystore.command.commands
 
-import com.mighty.pathfinder.helper.PathRenderer
-import com.mighty.pathfinder.PathWalker
-import com.mighty.pathfinder.Pathfinder
-import com.mighty.pathfinder.helper.NodeData
+import com.mightystore.pathfinder.helper.PathRenderer
+import com.mightystore.pathfinder.PathWalker
+import com.mightystore.pathfinder.Pathfinder
+import com.mightystore.pathfinder.helper.NodeData
 import net.minecraft.client.Minecraft
 import kotlin.concurrent.thread
 import net.minecraft.core.BlockPos

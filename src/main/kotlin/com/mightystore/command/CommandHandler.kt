@@ -1,6 +1,6 @@
-package com.mighty.command
+package com.mightystore.command
 
-import com.mighty.command.commands.ToCommand
+import com.mightystore.command.commands.ToCommand
 import org.cobalt.command.Command
 import org.cobalt.command.annotation.DefaultHandler
 import org.cobalt.command.annotation.SubCommand

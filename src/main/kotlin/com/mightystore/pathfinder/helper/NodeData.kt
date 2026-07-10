@@ -1,4 +1,4 @@
-package com.mighty.pathfinder.helper
+package com.mightystore.pathfinder.helper
 
 import net.minecraft.core.BlockPos
 

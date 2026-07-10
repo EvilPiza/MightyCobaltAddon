@@ -1,10 +1,10 @@
-package com.mighty
+package com.mightystore
 
-import com.mighty.command.CommandHandler
-import com.mighty.module.MightyRotations
-import com.mighty.pathfinder.PathWalker
-import com.mighty.pathfinder.helper.PathRenderer
-import com.mighty.pathfinder.helper.Rotation
+import com.mightystore.command.CommandHandler
+import com.mightystore.module.MightyRotations
+import com.mightystore.pathfinder.PathWalker
+import com.mightystore.pathfinder.helper.PathRenderer
+import com.mightystore.pathfinder.helper.Rotation
 import org.cobalt.addon.Addon
 import org.cobalt.command.CommandManager
 import org.cobalt.event.EventBus

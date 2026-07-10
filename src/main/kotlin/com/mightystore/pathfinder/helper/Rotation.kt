@@ -1,6 +1,6 @@
-package com.mighty.pathfinder.helper
+package com.mightystore.pathfinder.helper
 
-import com.mighty.module.MightyRotations
+import com.mightystore.module.MightyRotations
 import kotlin.math.abs
 import kotlin.math.sqrt
 import kotlin.random.Random

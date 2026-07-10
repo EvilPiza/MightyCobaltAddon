@@ -1,7 +1,7 @@
-package com.mighty.pathfinder
+package com.mightystore.pathfinder
 
-import com.mighty.pathfinder.helper.Node
-import com.mighty.pathfinder.helper.NodeData
+import com.mightystore.pathfinder.helper.Node
+import com.mightystore.pathfinder.helper.NodeData
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
