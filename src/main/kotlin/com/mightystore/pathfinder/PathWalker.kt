@@ -11,7 +11,7 @@ import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.BlockPos
 import org.cobalt.event.annotation.SubscribeEvent
 import org.cobalt.event.impl.TickEvent
-import org.cobalt.event.impl.WorldRenderEvent
+import org.cobalt.event.impl.WorldEvent
 
 object PathWalker {
   private val mc = Minecraft.getInstance()
@@ -81,7 +81,7 @@ object PathWalker {
   }
 
   @SubscribeEvent
-  fun onFrame(event: WorldRenderEvent) {
+  fun onFrame(event: WorldEvent.Render) {
     if (!isActive) return
     val player = mc.player ?: return
 

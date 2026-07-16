@@ -7,9 +7,9 @@ import kotlin.random.Random
 import net.minecraft.client.Minecraft
 import net.minecraft.util.Mth
 import org.cobalt.event.annotation.SubscribeEvent
-import org.cobalt.event.impl.WorldRenderEvent
+import org.cobalt.event.impl.WorldEvent
 import org.cobalt.module.impl.misc.Rotations
-import org.cobalt.util.rotation.Rotation
+import org.cobalt.util.rotation.data.Rotation
 
 object Rotation {
   private val mc = Minecraft.getInstance()
@@ -53,7 +53,7 @@ object Rotation {
   }
 
   @SubscribeEvent
-  fun onFrame(event: WorldRenderEvent) {
+  fun onFrame(event: WorldEvent.Render) {
     if (!active) return
     val player = mc.player ?: return
 

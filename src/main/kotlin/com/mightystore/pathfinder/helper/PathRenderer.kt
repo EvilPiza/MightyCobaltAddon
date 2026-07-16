@@ -3,8 +3,8 @@ package com.mightystore.pathfinder.helper
 import java.awt.Color
 import net.minecraft.world.phys.AABB
 import org.cobalt.event.annotation.SubscribeEvent
-import org.cobalt.event.impl.WorldRenderEvent
-import org.cobalt.util.WorldRenderUtils
+import org.cobalt.event.impl.WorldEvent
+import org.cobalt.util.render.GizmoRenderer
 
 object PathRenderer {
 
@@ -12,7 +12,7 @@ object PathRenderer {
   private var color: Color = Color(241, 188, 0)
 
   @SubscribeEvent
-  fun onWorldRender(event: WorldRenderEvent) {
+  fun onWorldRender(event: WorldEvent.Render) {
     render()
   }
 
@@ -33,7 +33,7 @@ object PathRenderer {
 
   fun render() {
     for (box in renderBoxes) {
-      WorldRenderUtils.drawBox(box, color)
+      GizmoRenderer.drawBox(box, color)
     }
   }
 }

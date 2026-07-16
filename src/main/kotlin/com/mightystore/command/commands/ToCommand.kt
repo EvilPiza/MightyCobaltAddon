@@ -7,7 +7,7 @@ import com.mightystore.pathfinder.helper.NodeData
 import net.minecraft.client.Minecraft
 import kotlin.concurrent.thread
 import net.minecraft.core.BlockPos
-import org.cobalt.util.ChatUtils
+import org.cobalt.util.chat.ChatUtils
 
 private var mc = Minecraft.getInstance()
 
