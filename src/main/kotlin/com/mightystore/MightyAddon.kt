@@ -1,10 +1,11 @@
 package com.mightystore
 
 import com.mightystore.command.CommandHandler
+import com.mightystore.command.commands.ToCommand
 import com.mightystore.module.MightyRotations
 import com.mightystore.pathfinder.PathWalker
 import com.mightystore.pathfinder.helper.PathRenderer
-import com.mightystore.pathfinder.helper.Rotation
+import com.mightystore.pathfinder.helper.PathRotation
 import org.cobalt.addon.Addon
 import org.cobalt.command.CommandManager
 import org.cobalt.event.EventBus
@@ -20,7 +21,7 @@ object MightyAddon : Addon {
     listOf(
       PathRenderer,
       PathWalker,
-      Rotation,
+      PathRotation,
       MightyRotations
     ).forEach(EventBus::register)
 
@@ -32,6 +33,8 @@ object MightyAddon : Addon {
   }
 
   override fun onUnload() {
+    PathWalker.stop()
+    ToCommand.shutdown()
     println("Mighty Unloaded! (Why would you do that?)")
   }
 }

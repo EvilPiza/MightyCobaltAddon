@@ -12,15 +12,15 @@ object PathRenderer {
   private var color: Color = Color(241, 188, 0)
 
   @SubscribeEvent
-  fun onWorldRender(event: WorldEvent.Render) {
+  fun onWorldRender(event: WorldEvent.BeforeGizmos) {
     render()
   }
 
   fun setPath(path: List<Node>?) {
     renderBoxes = path?.map { node ->
-      val x = node.data.pos.x.toDouble()
-      val y = node.data.pos.y.toDouble()
-      val z = node.data.pos.z.toDouble()
+      val x = node.pos.x.toDouble()
+      val y = node.pos.y.toDouble()
+      val z = node.pos.z.toDouble()
       AABB(x, y, z, x + 1, y + 1, z + 1)
     } ?: emptyList()
   }

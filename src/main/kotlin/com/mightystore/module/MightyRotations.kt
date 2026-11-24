@@ -20,7 +20,7 @@ object MightyRotations : Module(
   val stiffness by SliderSetting(
     name = "Stiffness",
     description = "How strongly rotation snaps toward the target",
-    defaultValue = 190,
+    defaultValue = 280,
     min = 50,
     max = 400
   )
@@ -28,7 +28,7 @@ object MightyRotations : Module(
   val dampingRatio by SliderSetting(
     name = "Damping Ratio",
     description = "How much the rotation resists overshooting, (value is divided by 100)",
-    defaultValue = 58,
+    defaultValue = 70,
     min = 10,
     max = 150
   )

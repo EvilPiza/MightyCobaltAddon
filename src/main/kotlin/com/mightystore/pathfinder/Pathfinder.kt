@@ -1,10 +1,9 @@
 package com.mightystore.pathfinder
 
+import com.mightystore.pathfinder.helper.MovementType
 import com.mightystore.pathfinder.helper.Node
-import com.mightystore.pathfinder.helper.NodeData
-import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
+import com.mightystore.pathfinder.helper.PathStep
+import java.util.PriorityQueue
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -12,15 +11,45 @@ import kotlin.math.sqrt
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.world.level.block.*
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.FenceBlock
+import net.minecraft.world.level.block.FenceGateBlock
+import net.minecraft.world.level.block.LiquidBlock
+import net.minecraft.world.level.block.RailBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.shapes.Shapes
 
-class Pathfinder() {
+class Pathfinder(
+  private val startPos: BlockPos,
+  private val goalPos: BlockPos
+) {
+
+  sealed interface Result {
+    data object Searching : Result
+    data object NotFound : Result
+    data class Found(val path: List<Node>) : Result
+  }
+
+  companion object {
+    private const val SEARCH_BATCH_SIZE = 250
+    private const val MAX_EXPANSIONS = 20_000
+    private const val SEARCH_TIMEOUT_MILLIS = 3_000L
+
+    private const val MAX_DROP = 6
+    private const val MAX_STEP_UP = 1.2
+    private const val REQUIRED_HEADROOM = 1.8
+    private const val FULL_BLOCK_HEIGHT = 0.6
+    private const val SMOOTH_LOOK_AHEAD = 20
+
+    // Kept from the original pathfinder; these are legacy solid-block ids.
+    private const val LEGACY_SOLID_BLOCK_ID = 78
+    private const val LEGACY_AVOID_BLOCK_ID = 80
+  }
+
   private val mc = Minecraft.getInstance()
 
-  private lateinit var goal: Node
-  private lateinit var start: Node
+  private val start = Node(PathStep(startPos, MovementType.WALK, 0.0), 0.0, 0.0, null)
+  private val goal = Node(PathStep(goalPos, MovementType.WALK, 0.0), 0.0, 0.0, null)
 
   private val openQueue: PriorityQueue<Node> = PriorityQueue(
     compareBy<Node> { it.fCost }
@@ -31,94 +60,82 @@ class Pathfinder() {
   private val cachedHeuristics: HashMap<BlockPos, Double> = HashMap()
   private val cachedPenalties: HashMap<BlockPos, Double> = HashMap()
   private val stateCache: HashMap<BlockPos, BlockState> = HashMap()
-  private val directions: ArrayList<BlockPos> = ArrayList()
 
-  init {
-    directions.apply {
-      add(BlockPos(1, 0, 0))
-      add(BlockPos(-1, 0, 0))
-      add(BlockPos(0, 0, 1))
-      add(BlockPos(0, 0, -1))
+  private val directions = listOf(
+    BlockPos(1, 0, 0),
+    BlockPos(-1, 0, 0),
+    BlockPos(0, 0, 1),
+    BlockPos(0, 0, -1)
+  )
+
+  private var initialized = false
+  private var expandedNodes = 0
+  private var startedAtMillis = 0L
+
+  fun search(maxExpansions: Int = SEARCH_BATCH_SIZE): Result {
+    if (!initialized) initialize()
+
+    val elapsed = System.currentTimeMillis() - startedAtMillis
+    if (expandedNodes >= MAX_EXPANSIONS || elapsed > SEARCH_TIMEOUT_MILLIS) {
+      return Result.NotFound
     }
-  }
 
-  private fun resetSearchState() {
-    openQueue.clear()
-    openSet.clear()
-    closedSet.clear()
-    cachedHeuristics.clear()
-    cachedPenalties.clear()
-    stateCache.clear()
-  }
+    var processed = 0
 
-  fun calculatePath(beginData: NodeData, end: NodeData): List<Node>? {
-    resetSearchState()
+    while (processed < maxExpansions) {
+      val current = openQueue.poll() ?: return Result.NotFound
+      processed++
 
-    start = Node(beginData, 0.0, Double.MAX_VALUE, null)
-    goal = Node(end, Double.MAX_VALUE, 0.0, null)
-
-    start.hCost = getHeuristic(beginData)
-    start.fCost = start.gCost + start.hCost
-
-    openQueue.add(start)
-    openSet[start.data.pos] = start
-
-    while (openQueue.isNotEmpty()) {
-      val current = openQueue.poll()
-      val currentPos = current.data.pos
-
-      if (openSet[currentPos] !== current) {
-        continue
-      }
+      val currentPos = current.pos
+      if (openSet[currentPos] !== current) continue
       openSet.remove(currentPos)
 
-      if (currentPos == goal.data.pos) {
+      if (currentPos == goalPos) {
         goal.parent = current
-        return smoothPath(reconstructPath(goal))
+        return Result.Found(smoothPath(reconstructPath(goal)))
       }
 
       closedSet[currentPos] = current
+      expandedNodes++
 
-      for (neighbourData in getNeighbours(current.data)) {
-        if (closedSet.containsKey(neighbourData.pos)) {
-          continue
-        }
+      for (step in getNeighbours(currentPos)) {
+        if (closedSet.containsKey(step.target)) continue
 
-        val newGCost = current.gCost + neighbourData.movement + getPenalty(neighbourData)
-        val existingNeighbour = openSet[neighbourData.pos]
+        val newGCost = current.gCost + step.cost + getPenalty(step.target)
+        val existing = openSet[step.target]
 
-        if (existingNeighbour == null) {
-          val newNode = Node(neighbourData, newGCost, getHeuristic(neighbourData), current)
-          newNode.fCost = newNode.gCost + newNode.hCost
-          openQueue.add(newNode)
-          openSet[neighbourData.pos] = newNode
-        } else if (newGCost < existingNeighbour.gCost) {
-          val updatedNode = Node(neighbourData, newGCost, existingNeighbour.hCost, current)
-          updatedNode.fCost = updatedNode.gCost + updatedNode.hCost
-          openQueue.add(updatedNode)
-          openSet[neighbourData.pos] = updatedNode
-        }
-      }
-
-      for (direction in directions) {
-        val goalCheck = currentPos.offset(direction)
-        if (goalCheck == goal.data.pos) {
-          goal.parent = current
-          return smoothPath(reconstructPath(goal))
+        if (existing == null) {
+          val node = Node(step, newGCost, getHeuristic(step.target), current)
+          openQueue.add(node)
+          openSet[step.target] = node
+        } else if (newGCost < existing.gCost) {
+          val node = Node(step, newGCost, existing.hCost, current)
+          openQueue.add(node)
+          openSet[step.target] = node
         }
       }
     }
 
-    return null
+    return Result.Searching
   }
 
-  private fun getCachedState(pos: BlockPos): BlockState {
-    return stateCache.getOrPut(pos) {
+  private fun initialize() {
+    start.hCost = getHeuristic(startPos)
+    start.fCost = start.gCost + start.hCost
+
+    openQueue.add(start)
+    openSet[startPos] = start
+
+    startedAtMillis = System.currentTimeMillis()
+    initialized = true
+  }
+
+  private fun getCachedState(pos: BlockPos): BlockState =
+    stateCache.getOrPut(pos) {
       mc.level?.getBlockState(pos) ?: Blocks.AIR.defaultBlockState()
     }
-  }
 
-  fun isWalkable(pos: BlockPos): Boolean {
+  private fun isWalkable(pos: BlockPos): Boolean {
     var state = getCachedState(pos)
     var block = state.block
 
@@ -129,163 +146,147 @@ class Pathfinder() {
 
     if (block is FenceBlock ||
       block is FenceGateBlock ||
-      block.descriptionId.contains("fence")) {
+      block.descriptionId.contains("fence")
+    ) {
       return false
     }
 
     state = getCachedState(pos)
+    block = state.block
 
-    if (block !is LiquidBlock &&
-      (state.blocksMotion() || BuiltInRegistries.BLOCK.getId(block) == 78)) {
-      return hasEnoughHeadroom(pos)
-    }
-
-    return false
+    val isSolid = state.blocksMotion() || BuiltInRegistries.BLOCK.getId(block) == LEGACY_SOLID_BLOCK_ID
+    return block !is LiquidBlock && isSolid && hasEnoughHeadroom(pos)
   }
 
   private fun hasEnoughHeadroom(pos: BlockPos): Boolean {
-    val stateAbove1 = getCachedState(pos.above())
-    val stateAbove2 = getCachedState(pos.above(2))
-    val blockAbove1 = stateAbove1.block
-    val blockAbove2 = stateAbove2.block
+    val above1 = pos.above()
+    val above2 = pos.above(2)
 
-    if (blockAbove1 is FenceBlock || blockAbove1 is FenceGateBlock ||
-      blockAbove2 is FenceBlock || blockAbove2 is FenceGateBlock) {
+    val state1 = getCachedState(above1)
+    val state2 = getCachedState(above2)
+    val block1 = state1.block
+    val block2 = state2.block
+
+    if (block1 is FenceBlock || block1 is FenceGateBlock ||
+      block2 is FenceBlock || block2 is FenceGateBlock
+    ) {
       return false
     }
 
-    val requiredClearance = 1.8
-    var availableClearance = 0.0
+    var clearance = 0.0
 
-    val shapeAbove1 = stateAbove1.getCollisionShape(mc.level!!, pos.above())
-    if (blockAbove1 == Blocks.AIR) {
-      availableClearance += 1.0
-    } else if (!shapeAbove1.isEmpty) {
-      availableClearance += (1.0 - shapeAbove1.bounds().maxY)
+    val shape1 = state1.getCollisionShape(mc.level!!, above1)
+    if (block1 == Blocks.AIR) {
+      clearance += 1.0
+    } else if (!shape1.isEmpty) {
+      clearance += 1.0 - shape1.bounds().maxY
     }
 
-    val shapeAbove2 = stateAbove2.getCollisionShape(mc.level!!, pos.above(2))
-    if (blockAbove2 == Blocks.AIR) {
-      availableClearance += 1.0
-    } else if (!shapeAbove2.isEmpty) {
-      availableClearance += (1.0 - shapeAbove2.bounds().maxY)
+    val shape2 = state2.getCollisionShape(mc.level!!, above2)
+    if (block2 == Blocks.AIR) {
+      clearance += 1.0
+    } else if (!shape2.isEmpty) {
+      clearance += 1.0 - shape2.bounds().maxY
     }
 
-    return availableClearance >= requiredClearance
+    return clearance >= REQUIRED_HEADROOM
   }
 
-  fun getNeighbours(data: NodeData): ArrayList<NodeData> {
-    val neighbours = ArrayList<NodeData>()
-    val originState = getCachedState(data.pos)
-    val originShape = originState.getCollisionShape(mc.level!!, data.pos)
+  private fun getNeighbours(from: BlockPos): List<PathStep> {
+    val neighbours = ArrayList<PathStep>(directions.size)
+
+    val originShape = getCachedState(from).getCollisionShape(mc.level!!, from)
     val originTopY = if (originShape.isEmpty) 0.0 else originShape.bounds().maxY
 
     for (offset in directions) {
-      val neighbourColumn = data.pos.offset(offset)
-
-      if (neighbourColumn == goal.data.pos) {
-        neighbours.add(NodeData(neighbourColumn, 2.0))
-        continue
-      }
-
+      val column = from.offset(offset)
       var airStreak = 0
       var totalChecked = 0
 
-      for (y in 1 downTo -6) {
-        val candidatePos = neighbourColumn.offset(0, y, 0)
+      for (y in 1 downTo -MAX_DROP) {
+        val candidatePos = column.offset(0, y, 0)
         val candidateState = getCachedState(candidatePos)
         val candidateBlock = candidateState.block
-
         val candidateShape = candidateState.getCollisionShape(mc.level!!, candidatePos)
-        val candidateTopY = if (candidateShape.isEmpty) 0.0 + y else candidateShape.bounds().maxY + y
-        val requiredJump = candidateTopY - originTopY
 
-        if (requiredJump > 1.2) {
-          continue
-        }
+        val localTopY = if (candidateShape.isEmpty) 0.0 else candidateShape.bounds().maxY
+        val worldTopY = if (candidateShape.isEmpty) y.toDouble() else localTopY + y
+
+        if (worldTopY - originTopY > MAX_STEP_UP) continue
 
         if (isWalkable(candidatePos)) {
-          if (y < -1 && airStreak != totalChecked) {
-            break
+          if (y < -1 && airStreak != totalChecked) break
+
+          var cost = if (y == 1 && localTopY <= FULL_BLOCK_HEIGHT) 2.0 else if (y == 1) 4.0 else 2.0
+          if (y < -1) cost *= abs(y).toDouble()
+
+          val landing = if (candidateBlock is RailBlock) candidatePos.below() else candidatePos
+          val movement = when {
+            y > 0 && localTopY > FULL_BLOCK_HEIGHT -> MovementType.STEP_UP
+            y < 0 -> MovementType.DROP
+            else -> MovementType.WALK
           }
 
-          val candidateHeight = if (candidateShape.isEmpty) 0.0 else candidateShape.bounds().maxY
-          var cost = if (y == 1 && candidateHeight != 0.5) 4.0 else 2.0
-          if (y < -1) {
-            cost *= abs(y).toDouble()
-          }
-
-          var landingPos = candidatePos
-          if (candidateBlock is RailBlock) {
-            landingPos = candidatePos.below()
-          }
-
-          neighbours.add(NodeData(landingPos, cost))
+          neighbours.add(PathStep(landing, movement, cost, takeoff = from))
           break
         }
 
         totalChecked++
-        if (candidateBlock == Blocks.AIR) {
-          airStreak++
-        }
+        if (candidateBlock == Blocks.AIR) airStreak++
       }
     }
 
     return neighbours
   }
 
-  private fun getPenalty(data: NodeData): Double {
-    cachedPenalties[data.pos]?.let { return it }
+  private fun getPenalty(pos: BlockPos): Double {
+    cachedPenalties[pos]?.let { return it }
 
-    var cost = 0.0
-    val belowBlock = getCachedState(data.pos).block
+    var penalty = 0.0
+    val belowBlock = getCachedState(pos).block
 
     for (x in -1..1) {
       for (z in -1..1) {
-        val checkPos = data.pos.offset(x, 1, z)
+        val checkPos = pos.offset(x, 1, z)
         val checkBlock = getCachedState(checkPos).block
-
         val id = BuiltInRegistries.BLOCK.getId(checkBlock)
-        if (id != 0 && id != 78 && id != 80) {
-          cost += 2.0
+
+        if (id != 0 && id != LEGACY_SOLID_BLOCK_ID && id != LEGACY_AVOID_BLOCK_ID) {
+          penalty += 2.0
         }
 
         if (belowBlock == Blocks.AIR && checkBlock == Blocks.AIR) {
-          cost += 2.0
+          penalty += 2.0
         }
       }
     }
 
-    cachedPenalties[data.pos] = cost
-    return cost
+    cachedPenalties[pos] = penalty
+    return penalty
   }
 
-  private fun getHeuristic(data: NodeData): Double {
-    return cachedHeuristics.getOrPut(data.pos) {
-      val pos = data.pos
-      val dX = (pos.x - goal.data.pos.x).toDouble()
-      val dY = (pos.y - goal.data.pos.y).toDouble()
-      val dZ = (pos.z - goal.data.pos.z).toDouble()
-      sqrt(dX * dX + dY * dY + dZ * dZ)
+  private fun getHeuristic(pos: BlockPos): Double =
+    cachedHeuristics.getOrPut(pos) {
+      val dx = (pos.x - goalPos.x).toDouble()
+      val dy = (pos.y - goalPos.y).toDouble()
+      val dz = (pos.z - goalPos.z).toDouble()
+      sqrt(dx * dx + dy * dy + dz * dz)
     }
-  }
 
-  private fun reconstructPath(currentNode: Node): ArrayList<Node> {
+  private fun reconstructPath(node: Node): List<Node> {
     val path = ArrayList<Node>()
-    var node: Node? = currentNode
+    var current: Node? = node
 
-    while (node != null) {
-      path.add(0, node)
-      node = node.parent
+    while (current != null) {
+      path.add(0, current)
+      current = current.parent
     }
 
     return path
   }
 
-  private fun smoothPath(nodes: List<Node>?): List<Node>? {
-    if (nodes == null || nodes.size <= 2) {
-      return nodes
-    }
+  private fun smoothPath(nodes: List<Node>): List<Node> {
+    if (nodes.size <= 2) return nodes
 
     val smoothed = ArrayList<Node>()
     smoothed.add(nodes[0])
@@ -293,34 +294,34 @@ class Pathfinder() {
     var current = 0
 
     while (current < nodes.size - 1) {
+      if (nodes[current + 1].step.movement != MovementType.WALK) {
+        current++
+        smoothed.add(nodes[current])
+        continue
+      }
+
       var nextIndex = current + 1
-      val maxLookAhead = minOf(20, nodes.size - current - 1)
+      val maxLookAhead = minOf(SMOOTH_LOOK_AHEAD, nodes.size - current - 1)
 
       for (lookAhead in maxLookAhead downTo 1) {
         val candidateIndex = current + lookAhead
-        if (candidateIndex >= nodes.size) continue
+        if (containsSpecialMove(nodes, current + 1, candidateIndex)) continue
 
-        val currentPos = nodes[current].data.pos
-        val candidatePos = nodes[candidateIndex].data.pos
+        val from = nodes[current].pos
+        val to = nodes[candidateIndex].pos
 
-        val yDiff = candidatePos.y - currentPos.y
+        val yDiff = to.y - from.y
         var canSkip = true
 
         if (yDiff < -1) {
-          val fromState = getCachedState(currentPos)
-          val toState = getCachedState(candidatePos)
-
-          val fromHeight = fromState.getCollisionShape(mc.level!!, currentPos).bounds().maxY
-          val toHeight = toState.getCollisionShape(mc.level!!, candidatePos).bounds().maxY
-
+          val fromHeight = getCachedState(from).getCollisionShape(mc.level!!, from).bounds().maxY
+          val toHeight = getCachedState(to).getCollisionShape(mc.level!!, to).bounds().maxY
           val hasSlabs = abs(fromHeight - 0.5) < 0.01 || abs(toHeight - 0.5) < 0.01
 
-          if (hasSlabs && lookAhead > 3) {
-            canSkip = false
-          }
+          if (hasSlabs && lookAhead > 3) canSkip = false
         }
 
-        if (canSkip && hasLineOfSight(currentPos, candidatePos)) {
+        if (canSkip && hasLineOfSight(from, to)) {
           nextIndex = candidateIndex
           break
         }
@@ -333,13 +334,15 @@ class Pathfinder() {
     return smoothed
   }
 
+  private fun containsSpecialMove(nodes: List<Node>, fromIndex: Int, toIndex: Int): Boolean =
+    (fromIndex..toIndex).any { nodes[it].step.movement != MovementType.WALK }
+
   private fun hasLineOfSight(from: BlockPos, to: BlockPos): Boolean {
     val dx = (to.x - from.x).toDouble()
     val dy = (to.y - from.y).toDouble()
     val dz = (to.z - from.z).toDouble()
     val distance = sqrt(dx * dx + dy * dy + dz * dz)
-
-    val steps = ceil(distance * 2).toInt()
+    val steps = maxOf(1, ceil(distance * 2).toInt())
 
     for (i in 0..steps) {
       val t = i / steps.toDouble()
@@ -347,21 +350,19 @@ class Pathfinder() {
       val y = floor(from.y + dy * t).toInt()
       val z = floor(from.z + dz * t).toInt()
 
-      val checkPos = BlockPos(x, y + 1, z)
-      val state = getCachedState(checkPos)
-      val block = state.block
+      val bodyPos = BlockPos(x, y + 1, z)
+      val bodyState = getCachedState(bodyPos)
+      val bodyBlock = bodyState.block
 
-      if (block != Blocks.AIR &&
-        state.blocksMotion() &&
-        state.getCollisionShape(mc.level!!, checkPos) == Shapes.block() &&
-        block !is LiquidBlock) {
+      if (bodyBlock != Blocks.AIR &&
+        bodyState.blocksMotion() &&
+        bodyState.getCollisionShape(mc.level!!, bodyPos) == Shapes.block() &&
+        bodyBlock !is LiquidBlock
+      ) {
         return false
       }
 
-      val belowPos = BlockPos(x, y, z)
-      if (!isWalkable(belowPos)) {
-        return false
-      }
+      if (!isWalkable(BlockPos(x, y, z))) return false
     }
 
     return true

@@ -11,6 +11,7 @@ val base_group: String by project
 val lwjglVersion: String by project
 val mod_version: String by project
 val mod_name: String by project
+val cobalt_version: String by project
 
 base {
   archivesName = mod_name
@@ -31,7 +32,7 @@ dependencies {
   implementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
   implementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
-  implementation("com.github.CobaltScripts:Cobalt:master-SNAPSHOT") {
+  implementation("com.github.CobaltScripts:Cobalt:${cobalt_version}") {
     exclude(group = "com.jagrosh", module = "DiscordIPC")
   }
   implementation("io.github.CDAGaming:DiscordIPC:0.10.2")
@@ -52,6 +53,11 @@ tasks {
     inputs.property("version", project.version)
 
     filesMatching("fabric.mod.json") {
+      expand(getProperties())
+      expand(mutableMapOf("version" to project.version))
+    }
+
+    filesMatching("cobalt.addon.json") {
       expand(getProperties())
       expand(mutableMapOf("version" to project.version))
     }

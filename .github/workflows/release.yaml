@@ -17,11 +17,11 @@ jobs:
           echo "sha256=$(sha256sum addon.jar | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
         id: hash
 
-      - name: Wait for the current Cobalt SNAPSHOT build on JitPack
+      - name: Wait for the pinned Cobalt release build on JitPack
         run: |
           group_path="com/github/CobaltScripts"
           artifact="Cobalt"
-          version="master-SNAPSHOT"
+          version="26.2-1.0.8.435a54c"
           status_url="https://jitpack.io/api/builds/com.github.CobaltScripts/$artifact/$version"
 
           status=""
